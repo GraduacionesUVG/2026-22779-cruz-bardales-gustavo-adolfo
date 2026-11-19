@@ -1,0 +1,18 @@
+### Python ###
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.pytest_cache/
+.coverage
+*.log
+
+
+build/
+dist/
+*.egg-info/
+
+
+# Datos de evaluacion descargados
+data/
