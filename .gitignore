@@ -1,0 +1,37 @@
+# Dependencias
+node_modules/
+vendor/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Compilación
+dist/
+build/
+*.egg-info/
+*.log
+.pytest_cache/
+.dart_tool/
+
+# Temporales
+tmp/
+temp/
+
+# Datos de evaluación que se descargan aparte
+src/data/

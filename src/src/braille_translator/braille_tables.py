@@ -1,0 +1,177 @@
+"""Tablas de simbolos Braille, cotejadas con el Manual de la ONCE (2001).
+
+La trazabilidad regla por regla esta en docs/braille_rules_subset.md.
+Cada celda es chr(0x2800 + suma de puntos), con dot1=1, dot2=2, dot3=4,
+dot4=8, dot5=16, dot6=32.
+"""
+
+def cell(*dots: int) -> str:
+    """Construye un caracter Braille Unicode a partir de numeros de punto (1-6)."""
+    value = 0
+    for d in dots:
+        value |= 1 << (d - 1)
+    return chr(0x2800 + value)
+
+
+NOTE_BASE = {
+    "C": cell(1, 4, 5),      # Do
+    "D": cell(1, 5),         # Re
+    "E": cell(1, 2, 4),      # Mi
+    "F": cell(1, 2, 4, 5),   # Fa
+    "G": cell(1, 2, 5),      # Sol
+    "A": cell(2, 4),         # La
+    "B": cell(2, 4, 5),      # Si
+}
+
+# Puntos adicionales por grupo de duracion 
+#   redonda/semicorchea -> +3+6 ; blanca/fusa -> +3 ; negra/semifusa -> +6 ;
+#   corchea/garrapatea  -> nada
+DURATION_EXTRA_DOTS = {
+    "whole": (3, 6), "16th": (3, 6),
+    "half": (3,), "32nd": (3,),
+    "quarter": (6,), "64th": (6,),
+    "eighth": (), "128th": (),
+}
+
+
+def note_cell(step: str, duration_type: str) -> str:
+    """Celda de nota: letra base mas los puntos que marcan la figura."""
+    base = NOTE_BASE[step]
+    value = ord(base) - 0x2800
+    for d in DURATION_EXTRA_DOTS[duration_type]:
+        value |= 1 << (d - 1)
+    return chr(0x2800 + value)
+
+
+REST = {
+    "whole": cell(1, 3, 4), "16th": cell(1, 3, 4),
+    "half": cell(1, 3, 6), "32nd": cell(1, 3, 6),
+    "quarter": cell(1, 2, 3, 6), "64th": cell(1, 2, 3, 6),
+    "eighth": cell(1, 3, 4, 6), "128th": cell(1, 3, 4, 6),
+}
+
+DOT = cell(3)
+
+OCTAVE_SIGN = {
+    1: cell(4),
+    2: cell(4, 5),
+    3: cell(4, 5, 6),
+    4: cell(5),
+    5: cell(4, 6),
+    6: cell(5, 6),
+    7: cell(6),
+}
+
+ACCIDENTAL = {
+    1: cell(1, 4, 6),    # sostenido
+    -1: cell(1, 2, 6),   # bemol
+    0: cell(1, 6),       # becuadro
+    2: cell(1, 4, 6) + cell(1, 4, 6),    # doble sostenido
+    -2: cell(1, 2, 6) + cell(1, 2, 6),   # doble bemol
+}
+
+INTERVAL = {
+    2: cell(3, 4),
+    3: cell(3, 4, 6),
+    4: cell(3, 4, 5, 6),
+    5: cell(3, 5),
+    6: cell(3, 5, 6),
+    7: cell(2, 5),
+    8: cell(3, 6),
+}
+
+RIGHT_HAND = cell(4, 6) + cell(3, 4, 5)   # parte de mano derecha
+LEFT_HAND = cell(4, 5, 6) + cell(3, 4, 5)  # parte de mano izquierda
+
+BAR = "\u2800"                      # la linea divisoria es un espacio en blanco
+# barra final y doble barra de fin de seccion
+FINAL_BAR = cell(1, 2, 6) + cell(1, 3)
+DOUBLE_BAR = cell(1, 2, 6) + cell(1, 3) + cell(3)
+
+# ligadura de expresion corta: va tras cada nota menos la ultima
+SLUR = cell(1, 4)
+# ligadura de mas de cuatro notas: apertura y cierre
+SLUR_OPEN = cell(5, 6) + cell(1, 2)
+SLUR_CLOSE = cell(4, 5) + cell(2, 3)
+
+# ligaduras de prolongacion: una nota suelta y un acorde entero
+TIE = cell(4) + cell(1, 4)
+CHORD_TIE = cell(4, 6) + cell(1, 4)
+
+# Separan voces simultaneas dentro de un mismo compas y mano.
+IN_ACCORD = cell(1, 2, 6) + cell(3, 4, 5)
+PARTIAL_IN_ACCORD = cell(5) + cell(2)
+MEASURE_DIVISION = cell(4, 6) + cell(1, 3)
+
+# Signos de valor de la regla 1-3 del Manual
+LARGER_VALUES = cell(4, 5) + cell(1, 2, 6) + cell(2)
+SMALLER_VALUES = cell(6) + cell(1, 2, 6) + cell(2)
+VALUE_SEPARATION = cell(5, 6) + cell(1, 3)
+
+NUMBER_SIGN = cell(3, 4, 5, 6)
+
+UPPER_DIGIT = {
+    1: cell(1), 2: cell(1, 2), 3: cell(1, 4), 4: cell(1, 4, 5), 5: cell(1, 5),
+    6: cell(1, 2, 4), 7: cell(1, 2, 4, 5), 8: cell(1, 2, 5), 9: cell(2, 4),
+    0: cell(2, 4, 5),
+}
+
+LOWER_DIGIT = {
+    1: cell(2), 2: cell(2, 3), 3: cell(2, 5), 4: cell(2, 5, 6), 5: cell(2, 6),
+    6: cell(2, 3, 5), 7: cell(2, 3, 5, 6), 8: cell(2, 3, 6), 9: cell(3, 5),
+    0: cell(3, 5, 6),
+}
+
+
+def time_signature(beats: int, beat_type: int) -> str:
+    """Numerador en posicion normal, denominador en la parte baja, cifra por cifra."""
+    upper = "".join(UPPER_DIGIT[int(d)] for d in str(beats))
+    lower = "".join(LOWER_DIGIT[int(d)] for d in str(beat_type))
+    return NUMBER_SIGN + upper + lower
+
+
+def key_signature(fifths: int) -> str:
+    """Hasta tres alteraciones repite el signo; de cuatro en adelante escribe
+    el numero seguido del signo."""
+    if fifths == 0:
+        return ""
+    count = abs(fifths)
+    sign = ACCIDENTAL[1] if fifths > 0 else ACCIDENTAL[-1]
+    if count <= 3:
+        return sign * count
+    return NUMBER_SIGN + UPPER_DIGIT[count] + sign
+
+
+BRAILLE_ASCII = (
+    " a1b'k2l@cif/msp\"e3h9o6r^djg>ntq,*5<-u8v.%[$+x!&;:4\\0z7(_?w]#y)="
+)
+
+
+def brf_to_unicode(text: str) -> str:
+    """Convierte Braille ASCII (BRF) de vuelta a celdas Unicode.
+
+    Los archivos BRF suelen venir en mayusculas, asi que las letras se
+    normalizan a minuscula antes de buscarlas en la tabla.
+    """
+    inverse = {ch: chr(0x2800 + i) for i, ch in enumerate(BRAILLE_ASCII)}
+    out = []
+    for ch in text:
+        if ch in ("\n", "\r", "\f"):
+            out.append(ch)
+            continue
+        out.append(inverse.get(ch, inverse.get(ch.lower(), "⠀")))
+    return "".join(out)
+
+
+def unicode_to_brf(text: str) -> str:
+    """Convierte una cadena de celdas Braille Unicode a Braille ASCII (BRF)."""
+    out = []
+    for ch in text:
+        code = ord(ch)
+        if 0x2800 <= code <= 0x283F:
+            out.append(BRAILLE_ASCII[code - 0x2800])
+        elif ch == "\n":
+            out.append("\n")
+        else:
+            out.append(" ")
+    return "".join(out)
